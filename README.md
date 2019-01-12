@@ -23,4 +23,4 @@ The `less` pager has a `-R` argument that understands ANSI color escape
 sequences, making it a great candidate for accepting output from
 HastyHex.
 
-    $ hastyhex data.bin | less -R
+    $ hastyhex data.bin | less -FRX
