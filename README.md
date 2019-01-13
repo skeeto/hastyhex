@@ -1,9 +1,9 @@
 # HastyHex : a faster hex dumper
 
 HastyHex is a ***blazing fast*** hex dump utility with optional ANSI
-color output. It performs about *two orders of magnitude* faster than
-your typical implementation of `hexdump` or `od`. It's is written in
-plain old ANSI C, so you can run it literally anywhere.
+color output. It performs about *one to two orders of magnitude* faster
+than your typical implementation of `hexdump` or `od`. It's is written
+in plain old ANSI C, so you can run it literally anywhere.
 
 ![](https://i.imgur.com/xbr4aMj.png)
 
