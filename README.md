@@ -24,3 +24,7 @@ sequences, making it a great candidate for accepting output from
 HastyHex.
 
     $ hastyhex data.bin | less -FRX
+
+The `-f` option increases the output buffer size which typically
+improves performance. Since MSVC doesn't support line-buffering, `-l`
+will be equivalent to `-f` on Windows.

@@ -323,13 +323,14 @@ main(int argc, char *argv[])
         }
     }
     switch (buf_mode) {
+        static char buf[1L << 18];
         case BUF_AUTO:
             break;
         case BUF_LINE:
-            setvbuf(out, 0, _IOLBF, 0);
+            setvbuf(out, buf, _IOLBF, sizeof(buf));
             break;
         case BUF_FULL:
-            setvbuf(out, 0, _IOFBF, 0);
+            setvbuf(out, buf, _IOFBF, sizeof(buf));
             break;
     }
 
