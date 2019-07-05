@@ -212,9 +212,23 @@ main(int argc, char *argv[])
     enum {BUF_AUTO, BUF_LINE, BUF_FULL} buf_mode = BUF_AUTO;
 
 #ifdef _WIN32
-    int _setmode(int, int);
-    _setmode(_fileno(stdout), 0x8000);
-    _setmode(_fileno(stdin), 0x8000);
+    { /* Set stdin/stdout to binary mode. */
+        int _setmode(int, int);
+        _setmode(0, 0x8000);
+        _setmode(1, 0x8000);
+    }
+    { /* Best effort enable ANSI escape processing. */
+        void *GetStdHandle(unsigned);
+        int GetConsoleMode(void *, unsigned *);
+        int SetConsoleMode(void *, unsigned);
+        void *handle;
+        unsigned mode;
+        handle = GetStdHandle(-11); /* STD_OUTPUT_HANDLE */
+        if (GetConsoleMode(handle, &mode)) {
+            mode |= 0x0004; /* ENABLE_VIRTUAL_TERMINAL_PROCESSING */
+            SetConsoleMode(handle, mode); /* ignore errors */
+        }
+    }
 #endif
 
     while ((option = getopt(argc, argv, "fhlo:p")) != -1) {
