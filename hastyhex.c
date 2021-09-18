@@ -218,9 +218,9 @@ main(int argc, char *argv[])
         _setmode(1, 0x8000);
     }
     { /* Best effort enable ANSI escape processing. */
-        void *GetStdHandle(unsigned);
-        int GetConsoleMode(void *, unsigned *);
-        int SetConsoleMode(void *, unsigned);
+        __declspec(dllimport) void *__stdcall GetStdHandle(unsigned);
+        __declspec(dllimport) int __stdcall GetConsoleMode(void *, unsigned *);
+        __declspec(dllimport) int __stdcall SetConsoleMode(void *, unsigned);
         void *handle;
         unsigned mode;
         handle = GetStdHandle(-11); /* STD_OUTPUT_HANDLE */
