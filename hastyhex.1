@@ -1,0 +1,45 @@
+.TH HASTYHEX 1
+.SH NAME
+hastyhex \- a fast, colorful hex dumper
+.SH SYNOPSIS
+.B hastyhex
+[\fB-h\fR]
+[\fB-l\fR]
+[\fB-f\fR]
+[\fB-o\fR \fIfile\fR]
+[\fB-p\fR]
+\fI[file]\fR
+.SH DESCRIPTION
+.B hastyhex
+is a high performance hex dump utility with optional ANSI color output.
+Bytes are colored according to class (null, control, whitespace, printable, other).
+.SH OPTIONS
+.TP
+\fB\-h\fR
+Print basic usage information to standard output and exit.
+.TP
+\fB\-l\fR
+Force output to be line-buffered.
+.TP
+\fB\-f\fR
+Force output to be fully-buffered.
+.TP
+\fB\-o\fR \fIfile\fR
+Output to a file instead of standard output.
+.TP
+\fB\-p\fR
+Do not output in color ("plain").
+.SH ENVIRONMENT
+.B hastyhex
+is not affected by environment variables.
+.SH FILES
+.B hastyhex
+is not affected by any files.
+.SH "SEE ALSO"
+.BR hd(1),
+.BR hexdump(1),
+.BR xxd(1)
+.SH AUTHORS
+Chris Wellons <wellons\[u0040]nullprogram.com>
+.SH BUGS
+No known bugs.
