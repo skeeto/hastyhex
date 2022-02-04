@@ -1,12 +1,30 @@
-#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include "getopt.h"
-
-#define PROGRAM_NAME "hastyhex"
 
 static const char hex[16] = "0123456789abcdef";
+
+/* Same as isalnum(3), but without locale. */
+static int
+xisalnum(int c)
+{
+    return (c >= '0' && c <= '9') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c >= 'a' && c <= 'z');
+}
+
+/* Same as strchr(3). */
+static const char *
+xstrchr(const char *s, int c)
+{
+    for (c = (char)c;; s++) {
+        if (*s == c) {
+            return s;
+        } else if (!*s) {
+            return 0;
+        }
+    }
+}
 
 static int
 color(int b)
@@ -190,19 +208,68 @@ process_plain(FILE *in, FILE *out)
     } while (n == 16);
 }
 
-static void
-usage(FILE *f)
+static int xoptind = 1;
+static int xoptopt;
+static char *xoptarg;
+
+/* Same as getopt(3) but never prints errors. */
+static int
+xgetopt(int argc, char * const argv[], const char *optstring)
 {
-    fprintf(f, "usage: " PROGRAM_NAME " [-fhlp] [-o FILE]\n");
-    fprintf(f, "  -h       print this help message\n");
-    fprintf(f, "  -l       force output line-buffered\n");
-    fprintf(f, "  -f       force output fully-buffered\n");
-    fprintf(f, "  -o FILE  output to file instead of standard output\n");
-    fprintf(f, "  -p       do not output color (\"plain\")\n");
+    static int optpos = 1;
+    const char *arg;
+
+    arg = xoptind < argc ? argv[xoptind] : 0;
+    if (arg && arg[0] == '-' && arg[1] == '-' && !arg[2]) {
+        xoptind++;
+        return -1;
+    } else if (!arg || arg[0] != '-' || !xisalnum(arg[1])) {
+        return -1;
+    } else {
+        const char *opt = xstrchr(optstring, arg[optpos]);
+        xoptopt = arg[optpos];
+        if (!opt) {
+            return '?';
+        } else if (opt[1] == ':') {
+            if (arg[optpos + 1]) {
+                xoptarg = (char *)arg + optpos + 1;
+                xoptind++;
+                optpos = 1;
+                return xoptopt;
+            } else if (argv[xoptind + 1]) {
+                xoptarg = (char *)argv[xoptind + 1];
+                xoptind += 2;
+                optpos = 1;
+                return xoptopt;
+            } else {
+                return ':';
+            }
+        } else {
+            if (!arg[++optpos]) {
+                xoptind++;
+                optpos = 1;
+            }
+            return xoptopt;
+        }
+    }
 }
 
-int
-main(int argc, char *argv[])
+
+static int
+usage(FILE *f)
+{
+    static const char usage[] =
+    "usage: hastyhex [-fhlp] [-o FILE]\n"
+    "  -h       print this help message\n"
+    "  -l       force output line-buffered\n"
+    "  -f       force output fully-buffered\n"
+    "  -o FILE  output to file instead of standard output\n"
+    "  -p       do not output color (\"plain\")\n";
+    return fwrite(usage, sizeof(usage)-1, 1, f) && !fflush(f);
+}
+
+static const char *
+run(int argc, char **argv)
 {
     int option;
     FILE *in = stdin;
@@ -210,6 +277,8 @@ main(int argc, char *argv[])
     const char *outfile = 0;
     enum {MODE_COLOR, MODE_PLAIN} mode = MODE_COLOR;
     enum {BUF_AUTO, BUF_LINE, BUF_FULL} buf_mode = BUF_AUTO;
+    static char missing[] = "missing argument: -?";
+    static char illegal[] = "illegal option: -?";
 
 #ifdef _WIN32
     { /* Set stdin/stdout to binary mode. */
@@ -231,40 +300,36 @@ main(int argc, char *argv[])
     }
 #endif
 
-    while ((option = getopt(argc, argv, "fhlo:p")) != -1) {
+    while ((option = xgetopt(argc, argv, ":fhlo:p")) != -1) {
         switch (option) {
-            case 'f':
-                buf_mode = BUF_FULL;
-                break;
-            case 'h':
-                usage(stdout);
-                return 0;
-            case 'l':
-                buf_mode = BUF_LINE;
-                break;
-            case 'o':
-                outfile = optarg;
-                break;
-            case 'p':
-                mode = MODE_PLAIN;
-                break;
-            default:
-                return 1;
+        case 'f': buf_mode = BUF_FULL;
+                  break;
+        case 'h': return usage(stdout) ? 0 : "write error";
+        case 'l': buf_mode = BUF_LINE;
+                  break;
+        case 'o': outfile = xoptarg;
+                  break;
+        case 'p': mode = MODE_PLAIN;
+                  break;
+        case ':': missing[sizeof(missing)-2] = xoptopt;
+                  usage(stderr);
+                  return missing;
+        case '?': illegal[sizeof(illegal)-2] = xoptopt;
+                  usage(stderr);
+                  return illegal;
         }
     }
 
     /* Configure input */
-    if (argv[optind]) {
-        if (argv[optind + 1]) {
-            fprintf(stderr, PROGRAM_NAME ": too many arguments\n");
-            return 1;
+    if (argv[xoptind]) {
+        char *path = argv[xoptind];
+        if (argv[xoptind+1]) {
+            return "too many arguments";
         }
-        if (strcmp(argv[optind], "-")) {
-            in = fopen(argv[optind], "rb");
+        if (path[0] != '-' || path[1] != 0) {
+            in = fopen(path, "rb");
             if (!in) {
-                fprintf(stderr, PROGRAM_NAME ": %s -- %s\n",
-                        strerror(errno), argv[optind]);
-                return 1;
+                return path;
             }
         }
     }
@@ -273,40 +338,44 @@ main(int argc, char *argv[])
     if (outfile) {
         out = fopen(outfile, "wb");
         if (!out) {
-            fprintf(stderr, PROGRAM_NAME ": %s -- %s\n",
-                    strerror(errno), outfile);
-            return 1;
+            return outfile;
         }
     }
     switch (buf_mode) {
-        static char buf[1L << 18];
-        case BUF_AUTO:
-            break;
-        case BUF_LINE:
-            setvbuf(out, buf, _IOLBF, sizeof(buf));
-            break;
-        case BUF_FULL:
-            setvbuf(out, buf, _IOFBF, sizeof(buf));
-            break;
+    static char buf[1L << 18];
+    case BUF_AUTO: break;
+    case BUF_LINE: setvbuf(out, buf, _IOLBF, sizeof(buf)); break;
+    case BUF_FULL: setvbuf(out, buf, _IOFBF, sizeof(buf)); break;
     }
 
     /* Process input using user-selected mode */
     switch (mode) {
-        case MODE_COLOR:
-            process_color(in, out);
-            break;
-        case MODE_PLAIN:
-            process_plain(in, out);
-            break;
+    case MODE_COLOR: process_color(in, out); break;
+    case MODE_PLAIN: process_plain(in, out); break;
     }
 
     /* Check for errors before exiting */
     if (ferror(in)) {
-        fputs(PROGRAM_NAME ": input error\n", stderr);
-        return 1;
+        return "input error";
     }
     if (fflush(out) || ferror(out)) {
-        fputs(PROGRAM_NAME ": output error\n", stderr);
+        return "output error";
+    }
+    return 0;
+}
+
+int
+main(int argc, char **argv)
+{
+    const char *err = run(argc, argv);
+    if (err) {
+        fputs("hastyhex: ", stderr);
+        if (errno) {
+            fputs(strerror(errno), stderr);
+            fputs(": ", stderr);
+        }
+        fputs(err, stderr);
+        fputs("\n", stderr);
         return 1;
     }
     return 0;
