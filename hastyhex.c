@@ -254,7 +254,6 @@ xgetopt(int argc, char * const argv[], const char *optstring)
     }
 }
 
-
 static int
 usage(FILE *f)
 {
