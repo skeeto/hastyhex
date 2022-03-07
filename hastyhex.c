@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define VERSION "1.0.0"
+
 static const char hex[16] = "0123456789abcdef";
 
 /* Same as isalnum(3), but without locale. */
@@ -259,12 +261,20 @@ usage(FILE *f)
 {
     static const char usage[] =
     "usage: hastyhex [-fhlp] [-o FILE]\n"
+    "  -f       force output fully-buffered\n"
     "  -h       print this help message\n"
     "  -l       force output line-buffered\n"
-    "  -f       force output fully-buffered\n"
     "  -o FILE  output to file instead of standard output\n"
-    "  -p       do not output color (\"plain\")\n";
+    "  -p       do not output color (\"plain\")\n"
+    "  -V       print version information\n";
     return fwrite(usage, sizeof(usage)-1, 1, f) && !fflush(f);
+}
+
+static int
+version(void)
+{
+    static const char version[] = "hastyhex " VERSION "\n";
+    return fwrite(version, sizeof(version)-1, 1, stdout) && !fflush(stdout);
 }
 
 static const char *
@@ -299,7 +309,7 @@ run(int argc, char **argv)
     }
 #endif
 
-    while ((option = xgetopt(argc, argv, ":fhlo:p")) != -1) {
+    while ((option = xgetopt(argc, argv, ":fhlo:pV")) != -1) {
         switch (option) {
         case 'f': buf_mode = BUF_FULL;
                   break;
@@ -310,6 +320,7 @@ run(int argc, char **argv)
                   break;
         case 'p': mode = MODE_PLAIN;
                   break;
+        case 'V': return version() ? 0 : "write error";
         case ':': missing[sizeof(missing)-2] = xoptopt;
                   usage(stderr);
                   return missing;
