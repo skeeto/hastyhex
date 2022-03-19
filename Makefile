@@ -1,7 +1,7 @@
 .POSIX:
 CC      = cc
 CFLAGS  = -ansi -pedantic -Wall -Wextra -O3 -march=native -funroll-loops
-LDFLAGS =
+LDFLAGS = -s
 LDLIBS  = 
 PREFIX  = /usr/local
 
